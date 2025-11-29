@@ -1,0 +1,159 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional, Dict, Any, List
+from engine import create_exercise_library, weekly_plan, export_program_to_text
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class ChatRequest(BaseModel):
+    message: str
+    state: Optional[Dict[str, Any]] = None
+
+from dataclasses import asdict
+
+class ChatResponse(BaseModel):
+    message: str
+    state: Dict[str, Any]
+    is_complete: bool = False
+    plan: Optional[str] = None
+    plan_data: Optional[List[Dict[str, Any]]] = None
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    state = request.state or {"step": "INIT", "data": {}}
+    step = state.get("step")
+    data = state.get("data", {})
+    user_input = request.message.strip()
+
+    # --- STEP HANDLERS ---
+
+    if step == "INIT":
+        # Initial greeting
+        return ChatResponse(
+            message="Hi, I am your AI fitness programming assistant. I am going to ask a series of questions to hone your squad’s workout plan to their needs.\n\nHow many days per week do you want to work out? (3-5)",
+            state={"step": "DAYS_PER_WEEK", "data": data}
+        )
+
+    elif step == "DAYS_PER_WEEK":
+        try:
+            days = int(user_input)
+            if days not in [3, 4, 5]:
+                raise ValueError()
+            data["days_per_week"] = days
+            return ChatResponse(
+                message="Are you more focused on 'strength' or 'cardio'?",
+                state={"step": "HIGH_LEVEL_FOCUS", "data": data}
+            )
+        except ValueError:
+            return ChatResponse(
+                message="Please enter a valid number: 3, 4, or 5.",
+                state=state
+            )
+
+    elif step == "HIGH_LEVEL_FOCUS":
+        focus = user_input.lower()
+        if focus not in ['strength', 'cardio']:
+            return ChatResponse(
+                message="Please enter 'strength' or 'cardio'.",
+                state=state
+            )
+        data["high_level_focus"] = focus
+        
+        if focus == 'strength':
+            return ChatResponse(
+                message="What type of strength training?\n1. Muscular endurance (15-25 reps)\n2. Hypertrophy (8-12 reps)\n3. Power (3-6 reps)\n4. Strength (1-5 reps)\n(Enter 1-4)",
+                state={"step": "STRENGTH_FOCUS", "data": data}
+            )
+        else:
+            data["strength_focus"] = None
+            return ChatResponse(
+                message="Any specific muscles you want to target? (e.g. chest, back, lat... or type 'none')",
+                state={"step": "MUSCLE_TARGET", "data": data}
+            )
+
+    elif step == "STRENGTH_FOCUS":
+        focus_map = {'1': 'endurance', '2': 'hypertrophy', '3': 'power', '4': 'strength'}
+        choice = user_input
+        if choice not in focus_map:
+             return ChatResponse(
+                message="Please enter a number between 1 and 4.",
+                state=state
+            )
+        data["strength_focus"] = focus_map[choice]
+        return ChatResponse(
+            message="Any specific muscles you want to target? (e.g. chest, back, lat... or type 'none')",
+            state={"step": "MUSCLE_TARGET", "data": data}
+        )
+
+    elif step == "MUSCLE_TARGET":
+        if user_input.lower() == 'none':
+            data["muscle_target"] = []
+        else:
+            # Split by comma or space
+            muscles = [m.strip().lower() for m in user_input.replace(',', ' ').split() if m.strip()]
+            data["muscle_target"] = muscles
+        
+        return ChatResponse(
+            message="What equipment do you have available? (e.g. barbell, dumbbell, pull-up bar... or type 'all')",
+            state={"step": "EQUIPMENT", "data": data}
+        )
+
+    elif step == "EQUIPMENT":
+        if user_input.lower() == 'all':
+            data["equipment"] = ['all']
+        else:
+            eq = [e.strip().lower() for e in user_input.replace(',', ' ').split() if e.strip()]
+            data["equipment"] = eq
+        
+        return ChatResponse(
+            message="How many people will be working out together?",
+            state={"step": "NUM_SOLDIERS", "data": data}
+        )
+
+    elif step == "NUM_SOLDIERS":
+        try:
+            num = int(user_input)
+            data["num_soldiers"] = num
+            
+            # GENERATE PLAN
+            exercise_lib = create_exercise_library()
+            week_plan = weekly_plan(data, exercise_lib)
+            program_text = export_program_to_text(week_plan, data.get('strength_focus', 'hypertrophy'))
+            
+            # Serialize plan data
+            plan_data = [asdict(day) for day in week_plan]
+
+            return ChatResponse(
+                message="I've generated a custom workout plan for your squad based on your requirements.",
+                state={"step": "DONE", "data": data},
+                is_complete=True,
+                plan=program_text,
+                plan_data=plan_data
+            )
+        except ValueError:
+             return ChatResponse(
+                message="Please enter a valid number.",
+                state=state
+            )
+            
+    elif step == "DONE":
+        return ChatResponse(
+            message="Plan already generated. Refresh to start over.",
+            state=state,
+            is_complete=True
+        )
+
+    return ChatResponse(message="Error: Unknown state", state=state)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
