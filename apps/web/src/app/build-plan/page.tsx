@@ -4,12 +4,15 @@ import { ChevronLeft, Star, X, Send } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 
+import { useRouter } from "next/navigation";
+
 interface Message {
   role: 'ai' | 'user';
   text: string;
 }
 
 export default function BuildPlan() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [backendState, setBackendState] = useState<any>(null);
@@ -26,6 +29,53 @@ export default function BuildPlan() {
 
   const [planData, setPlanData] = useState<any>(null);
   const [showPlan, setShowPlan] = useState(false);
+
+  const handleStartOver = async () => {
+    setMessages([]);
+    setBackendState(null);
+    setPlanData(null);
+    setShowPlan(false);
+    setInput("");
+
+    // Re-init chat
+    try {
+      const res = await fetch("http://localhost:8000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "", state: null }),
+      });
+      const data = await res.json();
+      setMessages([{ role: 'ai', text: data.message }]);
+      setBackendState(data.state);
+    } catch (error) {
+      console.error("Failed to re-init chat", error);
+    }
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleAddPlan = async () => {
+    if (!planData) return;
+
+    setIsSaving(true);
+    try {
+      const res = await fetch("http://localhost:8000/save-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan_data: planData }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save plan");
+
+      // Success - navigate home
+      router.push('/');
+    } catch (error) {
+      console.error("Error saving plan:", error);
+      alert("Failed to save plan. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Initial greeting
   useEffect(() => {
@@ -145,15 +195,31 @@ export default function BuildPlan() {
                 </div>
               )}
 
-              {/* View Plan Button */}
+              {/* Action Buttons */}
               {planData && !isLoading && (
-                <div className="flex justify-center pt-4 pb-2">
+                <div className="flex flex-col gap-3 px-4 pt-4 pb-2">
                   <button
                     onClick={() => setShowPlan(true)}
-                    className="bg-[#fbbf24] hover:bg-[#d9a51f] text-black font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105"
+                    className="w-full bg-[#363d31] hover:bg-[#4b5042] text-white font-medium py-3 rounded-xl border border-white/10 transition-colors"
                   >
                     View Generated Plan
                   </button>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleStartOver}
+                      className="flex-1 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium py-3 rounded-xl border border-white/10 transition-colors"
+                    >
+                      Start Over
+                    </button>
+                    <button
+                      onClick={handleAddPlan}
+                      disabled={isSaving}
+                      className="flex-1 bg-[#fbbf24] hover:bg-[#d9a51f] text-black font-bold py-3 rounded-xl shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSaving ? "Saving..." : "Add Plan"}
+                    </button>
+                  </div>
                 </div>
               )}
 
