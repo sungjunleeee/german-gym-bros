@@ -2,22 +2,51 @@
 
 A fitness application for generating and managing workout plans for squads.
 
-## Tech Stack
+## Quick Start
 
-- **Frontend**: Next.js 15, Tailwind CSS v4, TypeScript
-- **Backend**: Python, FastAPI
+We provide a setup script to get you up and running quickly.
 
-## Getting Started
+```bash
+./setup.sh
+```
+
+This will install all dependencies for both the backend and frontend.
+
+## Manual Setup
+
+If you prefer to set up the environment manually, follow these steps:
 
 ### 1. Backend (API)
 
-The backend runs on port `8000`.
+Navigate to the API directory, create a virtual environment, and install dependencies.
 
 ```bash
 cd apps/api
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt  # or pip install fastapi uvicorn numpy
+pip install -r requirements.txt
+```
+
+### 2. Frontend (Web)
+
+Navigate to the Web directory and install Node.js dependencies.
+
+```bash
+cd apps/web
+npm install
+```
+
+## Running the App
+
+You need to run the backend and frontend in separate terminals.
+
+### 1. Backend (API)
+
+The backend runs on port `8000`. The database is automatically initialized on startup.
+
+```bash
+cd apps/api
+source venv/bin/activate
 python main.py
 ```
 
@@ -27,7 +56,6 @@ The frontend runs on port `3000`.
 
 ```bash
 cd apps/web
-npm install
 npm run dev
 ```
 

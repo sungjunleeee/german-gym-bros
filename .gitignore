@@ -8,6 +8,7 @@ venv/
 __pycache__/
 *.py[cod]
 *.so
+apps/api/german_gym_bros.db
 
 # Next.js
 .next/
