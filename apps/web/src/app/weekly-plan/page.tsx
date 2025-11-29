@@ -2,7 +2,7 @@
 
 import { Star, ArrowLeft, Calendar, Dumbbell, Edit2, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function WeeklyPlan() {
     const [activeProgram, setActiveProgram] = useState<any>(null);
@@ -10,7 +10,7 @@ export default function WeeklyPlan() {
 
     const fetchProgram = async () => {
         try {
-            const res = await fetch("http://localhost:8000/active-program", { cache: "no-store" });
+            const res = await fetch(`http://localhost:8000/active-program?t=${Date.now()}`, { cache: "no-store" });
             if (res.ok) {
                 const data = await res.json();
                 setActiveProgram(data);
@@ -180,6 +180,25 @@ export default function WeeklyPlan() {
                                     </div>
                                 ))}
                             </div>
+
+                            {/* Delete All Button */}
+                            <div className="pt-4 pb-2">
+                                <HoldToDeleteButton onDelete={async () => {
+                                    try {
+                                        const res = await fetch(`http://localhost:8000/program/${activeProgram.id}`, {
+                                            method: "DELETE",
+                                        });
+                                        if (res.ok) {
+                                            fetchProgram();
+                                        } else {
+                                            alert("Failed to delete program");
+                                        }
+                                    } catch (error) {
+                                        console.error("Error deleting program", error);
+                                        alert("Error deleting program");
+                                    }
+                                }} />
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-64 border border-dashed border-white/20 rounded-xl mb-6 p-6 text-center space-y-4">
@@ -217,6 +236,121 @@ export default function WeeklyPlan() {
     );
 }
 
+function HoldToDeleteButton({ onDelete }: { onDelete: () => void }) {
+    const [isHolding, setIsHolding] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [showInstruction, setShowInstruction] = useState(false);
+    const [rippleStyle, setRippleStyle] = useState({ left: 0, top: 0, size: 0 });
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const HOLD_DURATION = 800; // 0.8 seconds
+    const UPDATE_INTERVAL = 20;
+
+    const startHold = (e: React.MouseEvent | React.TouchEvent) => {
+        setIsHolding(true);
+        setProgress(0);
+        setShowInstruction(false);
+
+        // Calculate ripple origin and max radius
+        if (buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            let clientX, clientY;
+
+            if ('touches' in e) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = (e as React.MouseEvent).clientX;
+                clientY = (e as React.MouseEvent).clientY;
+            }
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // Calculate distance to farthest corner
+            const distTopLeft = Math.sqrt(x * x + y * y);
+            const distTopRight = Math.sqrt(Math.pow(rect.width - x, 2) + y * y);
+            const distBottomLeft = Math.sqrt(x * x + Math.pow(rect.height - y, 2));
+            const distBottomRight = Math.sqrt(Math.pow(rect.width - x, 2) + Math.pow(rect.height - y, 2));
+
+            const maxDist = Math.max(distTopLeft, distTopRight, distBottomLeft, distBottomRight);
+
+            setRippleStyle({
+                left: x,
+                top: y,
+                size: maxDist * 2 // Diameter to cover radius
+            });
+        }
+
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (instructionTimeoutRef.current) clearTimeout(instructionTimeoutRef.current);
+
+        const startTime = Date.now();
+        intervalRef.current = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const newProgress = Math.min((elapsed / HOLD_DURATION) * 100, 100);
+            setProgress(newProgress);
+
+            if (newProgress >= 100) {
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                onDelete();
+                setIsHolding(false);
+                setProgress(0);
+            }
+        }, UPDATE_INTERVAL);
+    };
+
+    const cancelHold = () => {
+        if (isHolding && progress < 100) {
+            setShowInstruction(true);
+            if (instructionTimeoutRef.current) clearTimeout(instructionTimeoutRef.current);
+            instructionTimeoutRef.current = setTimeout(() => {
+                setShowInstruction(false);
+            }, 2000);
+        }
+
+        setIsHolding(false);
+        setProgress(0);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+
+    return (
+        <div className="relative w-full h-14 rounded-xl overflow-hidden select-none touch-none bg-transparent">
+            {/* Ripple Background */}
+            <div
+                className="absolute bg-red-500/20 rounded-full pointer-events-none transition-transform ease-linear"
+                style={{
+                    left: rippleStyle.left,
+                    top: rippleStyle.top,
+                    width: rippleStyle.size,
+                    height: rippleStyle.size,
+                    transform: `translate(-50%, -50%) scale(${isHolding ? progress / 100 : 0})`,
+                    opacity: isHolding ? 1 : 0,
+                    transitionDuration: isHolding ? '0ms' : '300ms' // Instant update during hold, smooth out
+                }}
+            />
+
+            <button
+                ref={buttonRef}
+                onMouseDown={startHold}
+                onMouseUp={cancelHold}
+                onMouseLeave={cancelHold}
+                onTouchStart={startHold}
+                onTouchEnd={cancelHold}
+                className="relative w-full h-full flex items-center justify-center gap-2 text-red-500 font-medium border border-red-500/20 rounded-xl bg-transparent active:scale-[0.98] transition-transform z-10"
+            >
+                <Trash2 size={18} />
+                <span className={`transition-opacity duration-300 ${showInstruction ? 'opacity-100 font-bold' : 'opacity-100'}`}>
+                    {isHolding
+                        ? (progress >= 100 ? "Deleting..." : "Hold to Delete")
+                        : (showInstruction ? "Hold to Delete" : "Delete Entire Plan")
+                    }
+                </span>
+            </button>
+        </div>
+    );
+}
 function WarmupSection({ data }: { data: string[] }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const displayData = isExpanded ? data : data.slice(0, 3);

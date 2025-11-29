@@ -152,3 +152,32 @@ def delete_workout(workout_id):
         raise e
     finally:
         conn.close()
+
+def delete_program(program_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 1. Get all workouts for this program
+        cursor.execute("SELECT id FROM workouts WHERE program_id = ?", (program_id,))
+        workouts = cursor.fetchall()
+        workout_ids = [w['id'] for w in workouts]
+        
+        if workout_ids:
+            # 2. Delete components for all workouts
+            placeholders = ','.join(['?'] * len(workout_ids))
+            cursor.execute(f"DELETE FROM workout_components WHERE workout_id IN ({placeholders})", workout_ids)
+            
+            # 3. Delete workouts
+            cursor.execute("DELETE FROM workouts WHERE program_id = ?", (program_id,))
+            
+        # 4. Delete program
+        cursor.execute("DELETE FROM training_programs WHERE id = ?", (program_id,))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

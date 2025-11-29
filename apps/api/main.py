@@ -19,7 +19,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,6 +54,15 @@ async def get_active_program():
 async def delete_workout_endpoint(workout_id: int):
     try:
         delete_workout(workout_id)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/program/{program_id}")
+async def delete_program_endpoint(program_id: int):
+    try:
+        from database import delete_program
+        delete_program(program_id)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
