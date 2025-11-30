@@ -37,12 +37,12 @@ const ensureStructure = (components: any[]) => {
 
     // Ensure Warmup
     if (!withIds.some(c => c.component_type === 'warmup')) {
-        withIds.unshift({ component_type: 'warmup', data: [], _ui_id: generateId() });
+        withIds.unshift({ component_type: 'warmup', order_index: 0, data: [], _ui_id: generateId() });
     }
 
     // Ensure Cooldown
     if (!withIds.some(c => c.component_type === 'cooldown')) {
-        withIds.push({ component_type: 'cooldown', data: [], _ui_id: generateId() });
+        withIds.push({ component_type: 'cooldown', order_index: 100, data: [], _ui_id: generateId() });
     }
 
     return withIds;

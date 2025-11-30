@@ -205,7 +205,7 @@ def update_workout_components(workout_id, components):
             
             cursor.execute(
                 "INSERT INTO workout_components (workout_id, component_type, order_index, data) VALUES (?, ?, ?, ?)",
-                (workout_id, comp['component_type'], comp['order_index'], data_str)
+                (workout_id, comp['component_type'], comp.get('order_index', 0), data_str)
             )
             
         conn.commit()
