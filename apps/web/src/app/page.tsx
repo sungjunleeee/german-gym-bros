@@ -36,8 +36,18 @@ export default function Home() {
     // Warmup
     const warmup = workout.components.find((c: any) => c.component_type === 'warmup');
     if (warmup && warmup.data && Array.isArray(warmup.data) && warmup.data.length > 0) {
-      const summary = `${warmup.data[0]}${warmup.data.length > 1 ? ` +${warmup.data.length - 1} more` : ''}`;
-      rows.push({ label: "Warm-up", value: summary });
+      const firstItem = warmup.data[0];
+      const remainingCount = warmup.data.length - 1;
+
+      const value = (
+        <div className="flex items-center justify-center w-full overflow-hidden">
+          <span className="truncate min-w-0">{firstItem}</span>
+          {remainingCount > 0 && (
+            <span className="shrink-0 whitespace-nowrap ml-1">+{remainingCount} more</span>
+          )}
+        </div>
+      );
+      rows.push({ label: "Warm-up", value });
     }
 
     // Circuits (Strength/Work)
@@ -55,8 +65,18 @@ export default function Home() {
     // Cooldown
     const cooldown = workout.components.find((c: any) => c.component_type === 'cooldown');
     if (cooldown && cooldown.data && Array.isArray(cooldown.data) && cooldown.data.length > 0) {
-      const summary = `${cooldown.data[0]}${cooldown.data.length > 1 ? ` +${cooldown.data.length - 1} more` : ''}`;
-      rows.push({ label: "Cooldown", value: summary });
+      const firstItem = cooldown.data[0];
+      const remainingCount = cooldown.data.length - 1;
+
+      const value = (
+        <div className="flex items-center justify-center w-full overflow-hidden">
+          <span className="truncate min-w-0">{firstItem}</span>
+          {remainingCount > 0 && (
+            <span className="shrink-0 whitespace-nowrap ml-1">+{remainingCount} more</span>
+          )}
+        </div>
+      );
+      rows.push({ label: "Cooldown", value });
     }
 
     return (
@@ -66,7 +86,7 @@ export default function Home() {
             <div className="w-[100px] bg-[#363d31] p-3 flex items-center justify-center font-medium border-r border-white/20">
               {row.label}
             </div>
-            <div className="flex-1 bg-[#22281f] p-3 flex items-center justify-center text-center">
+            <div className="flex-1 bg-[#22281f] p-3 flex items-center justify-center text-center min-w-0">
               {row.value}
             </div>
           </div>
