@@ -29,12 +29,15 @@ export default function BuildPlan() {
 
   const [planData, setPlanData] = useState<any>(null);
   const [showPlan, setShowPlan] = useState(false);
+  const [isAdded, setIsAdded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load state from sessionStorage on mount
   useEffect(() => {
     const savedMessages = sessionStorage.getItem('chat_messages');
     const savedState = sessionStorage.getItem('chat_backend_state');
     const savedPlan = sessionStorage.getItem('chat_plan_data');
+    const savedIsAdded = sessionStorage.getItem('chat_plan_added');
 
     if (savedMessages) {
       setMessages(JSON.parse(savedMessages));
@@ -45,10 +48,16 @@ export default function BuildPlan() {
     if (savedPlan) {
       setPlanData(JSON.parse(savedPlan));
     }
+    if (savedIsAdded) {
+      setIsAdded(JSON.parse(savedIsAdded));
+    }
+    setIsLoaded(true);
   }, []);
 
   // Save state to sessionStorage on change
   useEffect(() => {
+    if (!isLoaded) return;
+
     if (messages.length > 0) {
       sessionStorage.setItem('chat_messages', JSON.stringify(messages));
     }
@@ -58,7 +67,8 @@ export default function BuildPlan() {
     if (planData) {
       sessionStorage.setItem('chat_plan_data', JSON.stringify(planData));
     }
-  }, [messages, backendState, planData]);
+    sessionStorage.setItem('chat_plan_added', JSON.stringify(isAdded));
+  }, [messages, backendState, planData, isAdded, isLoaded]);
 
   const handleStartOver = async () => {
     setMessages([]);
@@ -66,11 +76,13 @@ export default function BuildPlan() {
     setPlanData(null);
     setShowPlan(false);
     setInput("");
+    setIsAdded(false);
 
     // Clear session storage
     sessionStorage.removeItem('chat_messages');
     sessionStorage.removeItem('chat_backend_state');
     sessionStorage.removeItem('chat_plan_data');
+    sessionStorage.removeItem('chat_plan_added');
 
     // Re-init chat
     try {
@@ -102,7 +114,11 @@ export default function BuildPlan() {
 
       if (!res.ok) throw new Error("Failed to save plan");
 
-      // Success - navigate home
+      // Success
+      setIsAdded(true);
+      sessionStorage.setItem('chat_plan_added', JSON.stringify(true));
+
+      // Navigate home immediately
       router.push('/weekly-plan');
     } catch (error) {
       console.error("Error saving plan:", error);
@@ -259,10 +275,13 @@ export default function BuildPlan() {
                     </button>
                     <button
                       onClick={handleAddPlan}
-                      disabled={isSaving}
-                      className="flex-1 bg-[#fbbf24] hover:bg-[#d9a51f] text-black font-bold py-3 rounded-xl shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isSaving || isAdded}
+                      className={`flex-1 font-bold py-3 rounded-xl shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isAdded
+                        ? "bg-green-600 text-white hover:bg-green-600"
+                        : "bg-[#fbbf24] hover:bg-[#d9a51f] text-black"
+                        }`}
                     >
-                      {isSaving ? "Saving..." : "Add Plan"}
+                      {isSaving ? "Saving..." : isAdded ? "Added!" : "Add Plan"}
                     </button>
                   </div>
                 </div>
@@ -279,12 +298,14 @@ export default function BuildPlan() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type your answer..."
-                  className="w-full bg-[#363d31] text-white placeholder-gray-400 rounded-xl py-3 pl-4 pr-12 border border-white/10 focus:outline-none focus:border-[#4b5042]"
+                  placeholder={planData ? "Start over to create a new plan." : "Type your answer..."}
+                  disabled={!!planData}
+                  className="w-full bg-[#363d31] text-white placeholder-gray-400 rounded-xl py-3 pl-4 pr-12 border border-white/10 focus:outline-none focus:border-[#4b5042] disabled:bg-[#22281f] disabled:text-gray-600 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={handleSend}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-white transition-colors"
+                  disabled={!!planData}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-gray-300"
                 >
                   <Send size={20} />
                 </button>

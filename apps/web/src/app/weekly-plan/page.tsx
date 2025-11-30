@@ -311,7 +311,7 @@ function HoldToDeleteButton({ onDelete }: { onDelete: () => void }) {
             if (instructionTimeoutRef.current) clearTimeout(instructionTimeoutRef.current);
             instructionTimeoutRef.current = setTimeout(() => {
                 setShowInstruction(false);
-            }, 2000);
+            }, 1500);
         }
 
         setIsHolding(false);
