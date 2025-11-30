@@ -34,8 +34,9 @@ export default function Home() {
 
     // Warmup
     const warmup = workout.components.find((c: any) => c.component_type === 'warmup');
-    if (warmup && warmup.data) {
-      rows.push({ label: "Warm-up", value: warmup.data.summary || "Standard Warmup" });
+    if (warmup && warmup.data && Array.isArray(warmup.data) && warmup.data.length > 0) {
+      const summary = `${warmup.data[0]}${warmup.data.length > 1 ? ` +${warmup.data.length - 1} more` : ''}`;
+      rows.push({ label: "Warm-up", value: summary });
     }
 
     // Circuits (Strength/Work)
@@ -47,11 +48,15 @@ export default function Home() {
     // Cardio
     const cardio = workout.components.find((c: any) => c.component_type === 'cardio');
     if (cardio && cardio.data) {
-      rows.push({ label: "Conditioning", value: cardio.data.type || "Cardio Session" });
+      rows.push({ label: "Cardio", value: cardio.data.type || "Cardio Session" });
     }
 
-    // Cool-down (Static for now as it's not always in data)
-    rows.push({ label: "Cool-down", value: "Recovery Drill - 5 mins" });
+    // Cooldown
+    const cooldown = workout.components.find((c: any) => c.component_type === 'cooldown');
+    if (cooldown && cooldown.data && Array.isArray(cooldown.data) && cooldown.data.length > 0) {
+      const summary = `${cooldown.data[0]}${cooldown.data.length > 1 ? ` +${cooldown.data.length - 1} more` : ''}`;
+      rows.push({ label: "Cooldown", value: summary });
+    }
 
     return (
       <div className="border border-white/20 rounded-lg overflow-hidden mb-4 text-sm">

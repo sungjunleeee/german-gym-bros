@@ -335,16 +335,16 @@ export default function BuildPlan() {
 
                     {/* Circuits */}
                     {day.circuits && day.circuits.map((circuit: any, cIdx: number) => (
-                      <div key={cIdx} className="bg-[#2a3025] rounded-lg p-3">
+                      <div key={cIdx} className="bg-[#2a3025] rounded-lg p-3 border border-[#394d26]">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-white font-medium text-sm">Circuit {cIdx + 1}</span>
+                          <span className="text-[#fbbf24] font-medium text-sm">CIRCUIT {cIdx + 1}</span>
                           <span className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">{circuit.rounds} Rounds</span>
                         </div>
                         <div className="space-y-2">
                           {circuit.exercises.map((ex: any, eIdx: number) => (
                             <div key={eIdx} className="flex justify-between text-sm">
                               <span className="text-gray-200">{ex.name}</span>
-                              <span className="text-gray-400 text-xs"> {ex.reps} reps</span>
+                              <span className="text-gray-400 text-sm"> {ex.reps} reps</span>
                             </div>
                           ))}
                         </div>
@@ -353,7 +353,7 @@ export default function BuildPlan() {
 
                     {/* Cardio */}
                     {day.cardio && (
-                      <div className="p-3 bg-[#394d26]/30 rounded-lg border border-[#394d26]">
+                      <div className="p-3 bg-[#2a3025] rounded-lg border border-[#394d26]">
                         <div className="text-[#fbbf24] text-sm font-bold mb-1">CARDIO</div>
                         <div className="flex justify-between items-center">
                           <span className="text-white text-sm">{day.cardio.type}</span>
@@ -361,26 +361,30 @@ export default function BuildPlan() {
                         </div>
                       </div>
                     )}
+
+                    {/* Cooldown */}
+                    {day.cooldown && day.cooldown.length > 0 && (
+                      <WarmupSection data={day.cooldown} title="Cooldown" />
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
 }
 
-function WarmupSection({ data }: { data: string[] }) {
+function WarmupSection({ data, title = "Warmup" }: { data: string[], title?: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const displayData = isExpanded ? data : data.slice(0, 3);
   const hasMore = data.length > 3;
 
   return (
-    <div className="bg-[#2a3025] rounded-lg p-3">
-      <h4 className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">Warmup</h4>
+    <div className="bg-[#394d26]/30 rounded-lg p-3 border border-[#394d26]">
+      <h4 className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">{title}</h4>
       <div className="space-y-1">
         {displayData.map((w, idx) => (
           <div key={idx} className="text-sm text-gray-300">{w}</div>

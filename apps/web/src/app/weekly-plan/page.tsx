@@ -146,9 +146,9 @@ export default function WeeklyPlan() {
                                                     )}
 
                                                     {comp.component_type === 'circuit' && (
-                                                        <div className="bg-[#2a3025] rounded-lg p-3">
+                                                        <div className="bg-[#2a3025] rounded-lg p-3 border border-[#394d26]">
                                                             <div className="flex justify-between items-center mb-2">
-                                                                <span className="text-white font-medium text-sm">Circuit {comp.order_index}</span>
+                                                                <span className="text-[#fbbf24] font-medium text-sm">CIRCUIT {comp.order_index}</span>
                                                                 <span className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">{comp.data.rounds} Rounds</span>
                                                             </div>
                                                             <div className="space-y-2">
@@ -163,7 +163,7 @@ export default function WeeklyPlan() {
                                                     )}
 
                                                     {comp.component_type === 'cardio' && (
-                                                        <div className="p-3 bg-[#394d26]/30 rounded-lg border border-[#394d26]">
+                                                        <div className="p-3 bg-[#2a3025] rounded-lg border border-[#394d26]">
                                                             <div className="text-[#fbbf24] text-sm font-bold mb-1">CARDIO</div>
                                                             <div className="flex justify-between items-center">
                                                                 <span className="text-white text-sm">{comp.data.type}</span>
@@ -173,6 +173,10 @@ export default function WeeklyPlan() {
                                                                 <div className="text-xs text-white/50 mt-1">{comp.data.notes}</div>
                                                             )}
                                                         </div>
+                                                    )}
+
+                                                    {comp.component_type === 'cooldown' && comp.data && comp.data.length > 0 && (
+                                                        <WarmupSection data={comp.data} title="Cooldown" />
                                                     )}
                                                 </div>
                                             ))}
@@ -351,14 +355,15 @@ function HoldToDeleteButton({ onDelete }: { onDelete: () => void }) {
         </div>
     );
 }
-function WarmupSection({ data }: { data: string[] }) {
+
+function WarmupSection({ data, title = "Warmup" }: { data: string[], title?: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const displayData = isExpanded ? data : data.slice(0, 3);
     const hasMore = data.length > 3;
 
     return (
-        <div className="bg-[#2a3025] rounded-lg p-3">
-            <h4 className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">Warmup</h4>
+        <div className="bg-[#394d26]/30 rounded-lg p-3 border border-[#394d26]">
+            <h4 className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-2">{title}</h4>
             <div className="space-y-1">
                 {displayData.map((w, idx) => (
                     <div key={idx} className="text-sm text-gray-300">{w}</div>

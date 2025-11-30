@@ -68,6 +68,13 @@ def save_program_to_db(program_name, description, plan_data):
                     "INSERT INTO workout_components (workout_id, component_type, order_index, data) VALUES (?, ?, ?, ?)",
                     (workout_id, 'cardio', 99, json.dumps(day['cardio']))
                 )
+
+            # Cooldown
+            if day.get('cooldown'):
+                cursor.execute(
+                    "INSERT INTO workout_components (workout_id, component_type, order_index, data) VALUES (?, ?, ?, ?)",
+                    (workout_id, 'cooldown', 100, json.dumps(day['cooldown']))
+                )
                 
         conn.commit()
         return program_id
