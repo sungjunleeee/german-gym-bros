@@ -3,6 +3,7 @@
 import { Star, CloudRain, AlertTriangle, Activity, Dumbbell } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { WeatherWidget } from "@/components/weather-widget";
 
 export default function Home() {
   const [activeProgram, setActiveProgram] = useState<any>(null);
@@ -142,16 +143,8 @@ export default function Home() {
           <section className="mb-6">
             <h3 className="text-xl font-semibold mb-3">Operational Alerts</h3>
             <div className="space-y-2">
-              {/* Weather Alert */}
-              <div className="flex border border-white/10 rounded-lg overflow-hidden bg-[#2a3026]">
-                <div className="w-[140px] bg-[#363d31] p-3 flex flex-col items-center justify-center text-center border-r border-white/10">
-                  <span className="font-bold text-sm">Weather Shifts</span>
-                  <span className="text-xs text-gray-400 mt-1">Rain at 0700</span>
-                </div>
-                <div className="flex-1 p-3 flex items-center justify-center text-center text-xs text-gray-300">
-                  Consider swapping Tempo run with indoor circuit
-                </div>
-              </div>
+              {/* Weather Widget */}
+              <WeatherWidget />
 
               {/* Equipment Alert */}
               <div className="flex border border-white/10 rounded-lg overflow-hidden bg-[#2a3026]">
