@@ -62,12 +62,12 @@ export default function WeeklyPlan() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-black/90 p-4 font-sans">
+        <div className="h-[100dvh] md:min-h-screen w-full flex md:items-center md:justify-center md:bg-black/90 md:p-4 bg-[#22281f] font-sans overflow-hidden overscroll-none">
             {/* Mobile Container */}
-            <div className="w-full max-w-[400px] bg-[#22281f] rounded-[30px] overflow-hidden shadow-2xl relative h-[850px] flex flex-col text-white border border-[#1a1f18]">
+            <div className="w-full h-[100dvh] md:h-[850px] md:max-w-[400px] bg-[#22281f] md:rounded-[30px] overflow-hidden shadow-2xl relative flex flex-col text-white md:border border-[#1a1f18]">
 
                 {/* Header */}
-                <header className="px-4 py-4 flex items-center gap-3 pt-12 shrink-0 bg-[#1a1f18] border-b border-white/10">
+                <header className="px-4 py-4 flex items-center gap-3 pt-4 md:pt-12 shrink-0 bg-[#1a1f18] border-b border-white/10">
                     <div className="w-10 h-10 bg-black border border-[#fbbf24] flex items-center justify-center rounded-sm shrink-0">
                         <Star className="text-[#fbbf24] fill-[#fbbf24]" size={20} />
                         <span className="text-[6px] text-white absolute mt-6 font-bold tracking-tighter">U.S.ARMY</span>
