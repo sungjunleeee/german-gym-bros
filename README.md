@@ -59,8 +59,20 @@ cd apps/web
 npm run dev
 ```
 
+## Environment Configuration (Optional)
+
+### Frontend (.env.local)
+
+Create a `.env.local` file in `apps/web` to configure the application. This is useful if you want to test on mobile devices connected to the same network.
+
+```bash
+# Replace localhost with your machine's local IP address (e.g., http://192.168.1.5:8000)
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
 ## Features
 
-- **Daily Plan**: Dashboard for PT schedules and squad readiness.
+- **Daily Plan**: Dashboard for PT schedules, squad readiness, and real-time weather updates.
 - **Build New Plan**: Interactive AI chat to generate custom workout plans with a full-screen preview.
 - **Weekly Plan**: View and manage your active weekly workout schedule.
+- **Edit Mode**: Customize workouts by modifying circuits, exercises, reps, and equipment with an intuitive UI.
