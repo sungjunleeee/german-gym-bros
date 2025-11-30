@@ -1,9 +1,10 @@
 "use client";
 
-import { Star, CloudRain, AlertTriangle, Activity, Dumbbell } from "lucide-react";
+import { Star, CloudRain, AlertTriangle, Activity, Dumbbell, X } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { WeatherWidget } from "@/components/weather-widget";
+import { WorkoutDetailView } from "@/components/workout-detail-view";
 
 export default function Home() {
   const [activeProgram, setActiveProgram] = useState<any>(null);
@@ -98,6 +99,8 @@ export default function Home() {
   // Get today's workout (Day 1 for MVP)
   const todaysWorkout = activeProgram?.workouts?.[0];
 
+  const [showDetail, setShowDetail] = useState(false);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-black/90 p-4 font-sans">
       {/* Mobile Container */}
@@ -130,13 +133,13 @@ export default function Home() {
             <div className="flex items-center justify-center h-40 text-gray-400">Loading plan...</div>
           ) : activeProgram ? (
             <>
-              {renderWorkoutTable(todaysWorkout)}
+              <div onClick={() => setShowDetail(true)} className="cursor-pointer transition-transform active:scale-[0.99]">
+                {renderWorkoutTable(todaysWorkout)}
+              </div>
 
               {/* Action Buttons */}
               <div className="flex gap-2 mb-6">
-                <button className="flex-1 bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10">
-                  Edit Plan
-                </button>
+
                 <button className="flex-1 bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10">
                   Auto-Adapt
                 </button>
@@ -216,6 +219,14 @@ export default function Home() {
             <span className="text-xs font-medium text-gray-400 leading-tight text-center">Squad<br />Info</span>
           </button>
         </nav>
+
+        {/* Workout Detail Overlay */}
+        {showDetail && todaysWorkout && (
+          <WorkoutDetailView
+            workout={todaysWorkout}
+            onClose={() => setShowDetail(false)}
+          />
+        )}
 
       </div>
     </div>

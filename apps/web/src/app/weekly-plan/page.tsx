@@ -4,9 +4,12 @@ import { Star, ArrowLeft, Calendar, Dumbbell, Edit2, Trash2 } from "lucide-react
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 
+import { WorkoutDetailView } from "@/components/workout-detail-view";
+
 export default function WeeklyPlan() {
     const [activeProgram, setActiveProgram] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
 
     const fetchProgram = async () => {
         try {
@@ -85,7 +88,11 @@ export default function WeeklyPlan() {
                             {/* Weekly Schedule */}
                             <div className="space-y-4">
                                 {activeProgram.workouts.map((day: any, index: number) => (
-                                    <div key={index} className="bg-[#363d31] rounded-xl p-2 border border-white/5 shadow-sm">
+                                    <div
+                                        key={index}
+                                        onClick={() => setSelectedWorkout(day)}
+                                        className="bg-[#363d31] rounded-xl p-2 border border-white/5 shadow-sm cursor-pointer transition-transform active:scale-[0.99]"
+                                    >
                                         {/* Day Header */}
                                         <div className="flex justify-between items-center mb-2 border-b border-white/10 pb-2">
                                             <h3 className="text-[#fbbf24] font-bold text-lg">Day {day.day_number}</h3>
@@ -118,9 +125,6 @@ export default function WeeklyPlan() {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button className="text-gray-400 hover:text-white transition-colors h-6 w-6 flex items-center justify-center" title="Edit (Coming Soon)">
-                                                            <Edit2 size={16} />
-                                                        </button>
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
@@ -234,6 +238,14 @@ export default function WeeklyPlan() {
                         <span className="text-xs font-medium text-gray-400 leading-tight text-center">Squad<br />Info</span>
                     </button>
                 </nav>
+
+                {/* Workout Detail Overlay */}
+                {selectedWorkout && (
+                    <WorkoutDetailView
+                        workout={selectedWorkout}
+                        onClose={() => setSelectedWorkout(null)}
+                    />
+                )}
 
             </div>
         </div>
@@ -357,8 +369,7 @@ function HoldToDeleteButton({ onDelete }: { onDelete: () => void }) {
 }
 
 function WarmupSection({ data, title = "Warmup" }: { data: string[], title?: string }) {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const displayData = isExpanded ? data : data.slice(0, 3);
+    const displayData = data.slice(0, 3);
     const hasMore = data.length > 3;
 
     return (
@@ -370,12 +381,9 @@ function WarmupSection({ data, title = "Warmup" }: { data: string[], title?: str
                 ))}
             </div>
             {hasMore && (
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-xs text-[#fbbf24] mt-2 hover:underline focus:outline-none"
-                >
-                    {isExpanded ? "Show less" : `...and ${data.length - 3} more`}
-                </button>
+                <div className="text-xs text-gray-500 mt-2 italic">
+                    ...and {data.length - 3} more
+                </div>
             )}
         </div>
     );
