@@ -17,6 +17,14 @@ export default function WeeklyPlan() {
             if (res.ok) {
                 const data = await res.json();
                 setActiveProgram(data);
+
+                // Update selectedWorkout if it exists to ensure detail view shows fresh data
+                if (selectedWorkout) {
+                    const updatedWorkout = data.workouts.find((w: any) => w.id === selectedWorkout.id);
+                    if (updatedWorkout) {
+                        setSelectedWorkout(updatedWorkout);
+                    }
+                }
             } else {
                 setActiveProgram(null);
             }
@@ -91,7 +99,7 @@ export default function WeeklyPlan() {
                                     <div
                                         key={index}
                                         onClick={() => setSelectedWorkout(day)}
-                                        className="bg-[#363d31] rounded-xl p-2 border border-white/5 shadow-sm cursor-pointer transition-transform active:scale-[0.99]"
+                                        className="bg-[#363d31] rounded-xl p-2 border border-white/5 shadow-sm cursor-pointer transition-transform"
                                     >
                                         {/* Day Header */}
                                         <div className="flex justify-between items-center mb-2 border-b border-white/10 pb-2">
@@ -153,13 +161,13 @@ export default function WeeklyPlan() {
                                                         <div className="bg-[#2a3025] rounded-lg p-3 border border-[#394d26]">
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <span className="text-[#fbbf24] font-medium text-sm">CIRCUIT {comp.order_index}</span>
-                                                                <span className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">{comp.data.rounds} Rounds</span>
+                                                                <span className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">{comp.data.rounds} {comp.data.rounds === 1 ? 'Round' : 'Rounds'}</span>
                                                             </div>
                                                             <div className="space-y-2">
                                                                 {comp.data.exercises.map((ex: any, eIdx: number) => (
                                                                     <div key={eIdx} className="flex justify-between text-sm">
                                                                         <span className="text-gray-200">{ex.name}</span>
-                                                                        <span className="text-white/50"> {ex.reps} reps</span>
+                                                                        <span className="text-white/50"> {ex.reps} {ex.reps === '1' || ex.reps === 1 ? 'rep' : 'reps'}</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -244,6 +252,7 @@ export default function WeeklyPlan() {
                     <WorkoutDetailView
                         workout={selectedWorkout}
                         onClose={() => setSelectedWorkout(null)}
+                        onRefresh={fetchProgram}
                     />
                 )}
 

@@ -58,6 +58,18 @@ async def delete_workout_endpoint(workout_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class UpdateWorkoutRequest(BaseModel):
+    components: List[Dict[str, Any]]
+
+@app.put("/workout/{workout_id}")
+async def update_workout_endpoint(workout_id: int, request: UpdateWorkoutRequest):
+    try:
+        from database import update_workout_components
+        update_workout_components(workout_id, request.components)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/program/{program_id}")
 async def delete_program_endpoint(program_id: int):
     try:

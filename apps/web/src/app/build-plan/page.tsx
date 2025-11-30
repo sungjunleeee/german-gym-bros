@@ -336,10 +336,10 @@ export default function BuildPlan() {
         {/* Plan Overlay - Moved to root to cover everything */}
         {showPlan && planData && (
           <div className="absolute inset-0 bg-[#22281f] z-50 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-300">
-            <div className="p-4 flex items-center justify-between bg-[#394d26] shadow-md shrink-0">
-              <h2 className="text-xl font-bold text-white">Your Squad Plan</h2>
-              <button onClick={() => setShowPlan(false)} className="p-2 text-white/80 hover:text-white">
-                <X size={24} />
+            <div className="p-4 flex items-center justify-between bg-[#394d26] shadow-md shrink-0 border-b border-white/10">
+              <h2 className="text-lg font-bold text-white tracking-wide">Your Squad Plan</h2>
+              <button onClick={() => setShowPlan(false)} className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors">
+                <X size={20} />
               </button>
             </div>
 
@@ -359,13 +359,13 @@ export default function BuildPlan() {
                       <div key={cIdx} className="bg-[#2a3025] rounded-lg p-3 border border-[#394d26]">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-[#fbbf24] font-medium text-sm">CIRCUIT {cIdx + 1}</span>
-                          <span className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">{circuit.rounds} Rounds</span>
+                          <span className="text-xs text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">{circuit.rounds} {circuit.rounds === 1 ? 'Round' : 'Rounds'}</span>
                         </div>
                         <div className="space-y-2">
                           {circuit.exercises.map((ex: any, eIdx: number) => (
                             <div key={eIdx} className="flex justify-between text-sm">
                               <span className="text-gray-200">{ex.name}</span>
-                              <span className="text-gray-400 text-sm"> {ex.reps} reps</span>
+                              <span className="text-gray-400 text-sm"> {ex.reps} {ex.reps === '1' || ex.reps === 1 ? 'rep' : 'reps'}</span>
                             </div>
                           ))}
                         </div>

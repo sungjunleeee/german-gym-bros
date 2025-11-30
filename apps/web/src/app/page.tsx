@@ -10,21 +10,21 @@ export default function Home() {
   const [activeProgram, setActiveProgram] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProgram = async () => {
-      try {
-        const res = await fetch("http://localhost:8000/active-program", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setActiveProgram(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch active program", error);
-      } finally {
-        setIsLoading(false);
+  const fetchProgram = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/active-program?t=${Date.now()}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveProgram(data);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch active program", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProgram();
   }, []);
 
@@ -54,7 +54,7 @@ export default function Home() {
     // Circuits (Strength/Work)
     const circuits = workout.components.filter((c: any) => c.component_type === 'circuit');
     if (circuits.length > 0) {
-      rows.push({ label: "Strength", value: `${circuits.length} Circuit(s) - See Details` });
+      rows.push({ label: "Strength", value: `${circuits.length} ${circuits.length === 1 ? 'Circuit' : 'Circuits'} - See Details` });
     }
 
     // Cardio
@@ -133,7 +133,7 @@ export default function Home() {
             <div className="flex items-center justify-center h-40 text-gray-400">Loading plan...</div>
           ) : activeProgram ? (
             <>
-              <div onClick={() => setShowDetail(true)} className="cursor-pointer transition-transform active:scale-[0.99]">
+              <div onClick={() => setShowDetail(true)} className="cursor-pointer transition-transform">
                 {renderWorkoutTable(todaysWorkout)}
               </div>
 
@@ -225,6 +225,7 @@ export default function Home() {
           <WorkoutDetailView
             workout={todaysWorkout}
             onClose={() => setShowDetail(false)}
+            onRefresh={fetchProgram}
           />
         )}
 

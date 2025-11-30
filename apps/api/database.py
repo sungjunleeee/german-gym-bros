@@ -188,3 +188,30 @@ def delete_program(program_id):
         raise e
     finally:
         conn.close()
+
+def update_workout_components(workout_id, components):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 1. Delete existing components
+        cursor.execute("DELETE FROM workout_components WHERE workout_id = ?", (workout_id,))
+        
+        # 2. Insert new components
+        for comp in components:
+            # comp is a dict with: component_type, order_index, data
+            # Ensure data is JSON string
+            data_str = json.dumps(comp['data']) if isinstance(comp['data'], (dict, list)) else comp['data']
+            
+            cursor.execute(
+                "INSERT INTO workout_components (workout_id, component_type, order_index, data) VALUES (?, ?, ?, ?)",
+                (workout_id, comp['component_type'], comp['order_index'], data_str)
+            )
+            
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

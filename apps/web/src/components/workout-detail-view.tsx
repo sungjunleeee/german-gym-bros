@@ -1,6 +1,29 @@
-import { X, Pencil } from "lucide-react";
+"use client";
 
-export function WorkoutDetailView({ workout, onClose }: { workout: any; onClose: () => void }) {
+import { useState } from "react";
+import { X, Pencil } from "lucide-react";
+import { WorkoutEditView } from "./workout-edit-view";
+
+export function WorkoutDetailView({ workout, onClose, onRefresh }: { workout: any; onClose: () => void; onRefresh?: () => Promise<void> | void }) {
+    const [isEditing, setIsEditing] = useState(false);
+
+    if (isEditing) {
+        return (
+            <WorkoutEditView
+                workout={workout}
+                onCancel={() => setIsEditing(false)}
+                onSaveSuccess={async () => {
+                    if (onRefresh) {
+                        await onRefresh();
+                    } else {
+                        window.location.reload();
+                    }
+                    setIsEditing(false);
+                }}
+            />
+        );
+    }
+
     // Helper to get components by type
     const getComponents = (type: string) => workout.components.filter((c: any) => c.component_type === type);
 
@@ -15,17 +38,20 @@ export function WorkoutDetailView({ workout, onClose }: { workout: any; onClose:
             <div className="p-4 flex items-center justify-between bg-[#394d26] shadow-md shrink-0 border-b border-white/10">
                 <h2 className="text-lg font-bold text-white tracking-wide">Workout Details</h2>
                 <div className="flex items-center gap-2">
-                    <button className="p-2 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors">
+                    <button
+                        onClick={() => setIsEditing(true)}
+                        className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                    >
                         <Pencil size={20} />
                     </button>
-                    <button onClick={onClose} className="p-2 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors">
-                        <X size={24} />
+                    <button onClick={onClose} className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors">
+                        <X size={20} />
                     </button>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-gray-600 pb-24">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-gray-600 pb-6">
 
                 {/* Warmup Section */}
                 {warmups.length > 0 && (
@@ -36,7 +62,7 @@ export function WorkoutDetailView({ workout, onClose }: { workout: any; onClose:
                                 <ul className="space-y-2">
                                     {w.data.map((item: string, idx: number) => (
                                         <li key={idx} className="flex items-start gap-2 text-sm text-gray-200">
-                                            <span className="text-[#fbbf24] mt-1.5">•</span>
+                                            <span className="text-[#fbbf24] h-5 flex items-center">•</span>
                                             <span>{item}</span>
                                         </li>
                                     ))}
@@ -56,7 +82,7 @@ export function WorkoutDetailView({ workout, onClose }: { workout: any; onClose:
                                 <div className="bg-[#2a3026] p-3 border-b border-white/5 flex justify-between items-center">
                                     <span className="font-bold text-white">Circuit {i + 1}</span>
                                     <span className="text-xs font-bold bg-[#fbbf24] text-black px-2 py-0.5 rounded-full">
-                                        {circuit.data.rounds} Rounds
+                                        {circuit.data.rounds} {circuit.data.rounds === 1 ? 'Round' : 'Rounds'}
                                     </span>
                                 </div>
 
@@ -89,7 +115,7 @@ export function WorkoutDetailView({ workout, onClose }: { workout: any; onClose:
                                                 )}
                                             </div>
                                             <div className="text-sm font-mono text-[#fbbf24] whitespace-nowrap">
-                                                {ex.reps} reps
+                                                {ex.reps} {ex.reps === '1' || ex.reps === 1 ? 'rep' : 'reps'}
                                             </div>
                                         </div>
                                     ))}
@@ -156,7 +182,7 @@ export function WorkoutDetailView({ workout, onClose }: { workout: any; onClose:
                                 <ul className="space-y-2">
                                     {w.data.map((item: string, idx: number) => (
                                         <li key={idx} className="flex items-start gap-2 text-sm text-gray-200">
-                                            <span className="text-[#fbbf24] mt-1.5">•</span>
+                                            <span className="text-[#fbbf24] h-5 flex items-center">•</span>
                                             <span>{item}</span>
                                         </li>
                                     ))}
