@@ -1,14 +1,25 @@
+import os
+import json
+import google.generativeai as genai
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
+from dataclasses import asdict
 from engine import (
     create_exercise_library, 
     weekly_plan, 
-    export_program_to_text,
-    WorkoutSession
+    export_program_to_text
 )
 from database import init_db, save_program_to_db, get_latest_program, delete_workout
+
+# Configure the Gemini API
+# Make sure to set the GEMINI_API_KEY environment variable
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY environment variable not set")
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 app = FastAPI()
 
@@ -79,8 +90,6 @@ async def delete_program_endpoint(program_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from dataclasses import asdict
-
 class ChatResponse(BaseModel):
     message: str
     state: Dict[str, Any]
@@ -88,132 +97,120 @@ class ChatResponse(BaseModel):
     plan: Optional[str] = None
     plan_data: Optional[List[Dict[str, Any]]] = None
 
+class AdaptPlanRequest(BaseModel):
+    current_plan: Dict[str, Any]
+    user_request: str
+
+@app.post("/adapt-plan")
+async def adapt_plan(request: AdaptPlanRequest):
+    prompt = f"""
+You are an AI fitness assistant. Your task is to modify a JSON workout plan based on a user's request.
+The user's request is: "{request.user_request}"
+
+Here is the current workout plan in JSON format:
+{json.dumps(request.current_plan, indent=2)}
+
+Your instructions are:
+1.  Read the user's request and the JSON data carefully.
+2.  Modify the JSON data to fulfill the user's request.
+3.  **You must return the complete, entire, updated JSON object.** Do not return only the changed parts.
+4.  The structure of the JSON object must remain exactly the same as the original. Do not add, remove, or rename any keys at the top level of the JSON structure unless the user explicitly asks for it.
+5.  Ensure the returned JSON is valid.
+6.  Do not add any explanatory text, comments, or markdown formatting. Your response must be **only the raw JSON object**.
+
+For example, if the user says "remove the barbell bench press from day 1", you should find that exercise in the `workouts` array and remove it, then return the whole JSON object.
+If the user says "make day 2 a rest day", you should modify the components of the workout for day 2 to reflect a rest day (e.g., empty arrays for components).
+
+Now, generate the updated JSON plan.
+"""
+    try:
+        response = model.generate_content(prompt)
+        # Clean the response to get raw JSON
+        cleaned_response = response.text.strip().replace('`','').replace('json', '')
+        updated_plan_json = json.loads(cleaned_response)
+        return {"updated_plan": updated_plan_json}
+    except (json.JSONDecodeError, KeyError) as e:
+        raise HTTPException(status_code=500, detail=f"AI failed to return valid JSON. Error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calling Gemini API: {e}")
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    state = request.state or {"step": "INIT", "data": {}}
-    step = state.get("step")
-    data = state.get("data", {})
-    user_input = request.message.strip()
+    # This is a simplified chat flow now, mainly for the initial plan generation.
+    # The more complex state machine is replaced by a direct call for the 'build-plan' page.
+    state = request.state or {"history": []}
+    history = state.get("history", [])
 
-    # --- STEP HANDLERS ---
-
-    if step == "INIT":
-        # Initial greeting
+    if not history:
+         # Initial greeting
+        initial_message = "Hi, I am your AI fitness programming assistant. I am going to ask a series of questions to hone your squad’s workout plan to their needs.\n\nWhat test are you preparing for (e.g., ACFT) and what is the date of that test?"
+        history.append({"role": "model", "parts": [initial_message]})
         return ChatResponse(
-            message="Hi, I am your AI fitness programming assistant. I am going to ask a series of questions to hone your squad’s workout plan to their needs.\n\nHow many days per week do you want to work out? (3-5)",
-            state={"step": "DAYS_PER_WEEK", "data": data}
+            message=initial_message,
+            state={"history": history}
         )
 
-    elif step == "DAYS_PER_WEEK":
-        try:
-            days = int(user_input)
-            if days not in [3, 4, 5]:
-                raise ValueError()
-            data["days_per_week"] = days
-            return ChatResponse(
-                message="Are you more focused on 'strength' or 'cardio'?",
-                state={"step": "HIGH_LEVEL_FOCUS", "data": data}
-            )
-        except ValueError:
-            return ChatResponse(
-                message="Please enter a valid number: 3, 4, or 5.",
-                state=state
-            )
+    # Add user's message to history
+    history.append({"role": "user", "parts": [request.message]})
 
-    elif step == "HIGH_LEVEL_FOCUS":
-        focus = user_input.lower()
-        if focus not in ['strength', 'cardio']:
-            return ChatResponse(
-                message="Please enter 'strength' or 'cardio'.",
-                state=state
-            )
-        data["high_level_focus"] = focus
-        
-        if focus == 'strength':
-            return ChatResponse(
-                message="What type of strength training?\n1. Muscular endurance (15-25 reps)\n2. Hypertrophy (8-12 reps)\n3. Power (3-6 reps)\n4. Strength (1-5 reps)\n(Enter 1-4)",
-                state={"step": "STRENGTH_FOCUS", "data": data}
-            )
-        else:
-            data["strength_focus"] = None
-            return ChatResponse(
-                message="Any specific muscles you want to target? (e.g. chest, back, lat... or type 'none')",
-                state={"step": "MUSCLE_TARGET", "data": data}
-            )
+    # The get_gemini_response logic is now specific to plan generation
+    prompt = f"""The following is a conversation with an AI fitness programming assistant. 
+The assistant asks questions to create a personalized workout plan.
 
-    elif step == "STRENGTH_FOCUS":
-        focus_map = {'1': 'endurance', '2': 'hypertrophy', '3': 'power', '4': 'strength'}
-        choice = user_input
-        if choice not in focus_map:
-             return ChatResponse(
-                message="Please enter a number between 1 and 4.",
-                state=state
-            )
-        data["strength_focus"] = focus_map[choice]
+Based on the conversation, either ask the next clarifying question, or if you have enough information, 
+respond with a JSON object containing the following keys:
+- "test_name": string (e.g., "ACFT")
+- "test_date": string (YYYY-MM-DD)
+- "days_per_week": int (3-5)
+- "high_level_focus": 'strength' or 'cardio'
+- "strength_focus": 'endurance', 'hypertrophy', 'power', or 'strength' (or null if cardio)
+- "muscle_target": list of strings (e.g., ["chest", "back", "legs"])
+- "equipment": list of strings (e.g., ["barbell", "dumbbell"])
+- "num_soldiers": int
+
+UNTIL THE FINAL MESSAGE, RESPOND IN PLAIN TEXT WITH NO METADATA.
+
+Do not ask for information you already have. Here is the conversation history:
+{json.dumps(history, indent=2)}
+"""
+    try:
+        response = model.generate_content(prompt)
+        gemini_response = response.text
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calling Gemini API: {e}")
+
+
+    # Check if the response is the final JSON
+    try:
+        # The response might have markdown formatting
+        cleaned_response = gemini_response.strip().replace('`','').replace('json', '')
+        plan_data_json = json.loads(cleaned_response)
+
+        # If we get here, we have the plan data
+        exercise_lib = create_exercise_library()
+        week_plan = weekly_plan(plan_data_json, exercise_lib)
+        program_text = export_program_to_text(week_plan, plan_data_json.get('strength_focus', 'hypertrophy'))
+        plan_data = [asdict(day) for day in week_plan]
+
+        final_message = "I've generated a custom workout plan for your squad based on your requirements."
+        history.append({"role": "model", "parts": [final_message]})
+
         return ChatResponse(
-            message="Any specific muscles you want to target? (e.g. chest, back, lat... or type 'none')",
-            state={"step": "MUSCLE_TARGET", "data": data}
+            message=final_message,
+            state={"history": history},
+            is_complete=True,
+            plan=program_text,
+            plan_data=plan_data
         )
 
-    elif step == "MUSCLE_TARGET":
-        if user_input.lower() == 'none':
-            data["muscle_target"] = []
-        else:
-            # Split by comma or space
-            muscles = [m.strip().lower() for m in user_input.replace(',', ' ').split() if m.strip()]
-            data["muscle_target"] = muscles
-        
+    except (json.JSONDecodeError, KeyError):
+        # The response is another question, so we continue the conversation
+        history.append({"role": "model", "parts": [gemini_response]})
         return ChatResponse(
-            message="What equipment do you have available? (e.g. barbell, dumbbell, pull-up bar... or type 'all')",
-            state={"step": "EQUIPMENT", "data": data}
+            message=gemini_response,
+            state={"history": history}
         )
-
-    elif step == "EQUIPMENT":
-        if user_input.lower() == 'all':
-            data["equipment"] = ['all']
-        else:
-            eq = [e.strip().lower() for e in user_input.replace(',', ' ').split() if e.strip()]
-            data["equipment"] = eq
-        
-        return ChatResponse(
-            message="How many people will be working out together?",
-            state={"step": "NUM_SOLDIERS", "data": data}
-        )
-
-    elif step == "NUM_SOLDIERS":
-        try:
-            num = int(user_input)
-            data["num_soldiers"] = num
-            
-            # GENERATE PLAN
-            exercise_lib = create_exercise_library()
-            week_plan = weekly_plan(data, exercise_lib)
-            program_text = export_program_to_text(week_plan, data.get('strength_focus', 'hypertrophy'))
-            
-            # Serialize plan data
-            plan_data = [asdict(day) for day in week_plan]
-
-            return ChatResponse(
-                message="I've generated a custom workout plan for your squad based on your requirements.",
-                state={"step": "DONE", "data": data},
-                is_complete=True,
-                plan=program_text,
-                plan_data=plan_data
-            )
-        except ValueError:
-             return ChatResponse(
-                message="Please enter a valid number.",
-                state=state
-            )
-            
-    elif step == "DONE":
-        return ChatResponse(
-            message="Plan already generated. Refresh to start over.",
-            state=state,
-            is_complete=True
-        )
-
-    return ChatResponse(message="Error: Unknown state", state=state)
 
 if __name__ == "__main__":
     import uvicorn

@@ -7,9 +7,9 @@ echo "🚀 Setting up German Gym Bros..."
 
 # 1. Setup Backend
 echo "📦 Setting up Backend (apps/api)..."
-cd apps/api
+cd ./apps/api
 if [ ! -d "venv" ]; then
-    python3 -m venv venv
+    python -m venv venv
     echo "   Created virtual environment."
 fi
 source venv/bin/activate

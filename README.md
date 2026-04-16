@@ -12,6 +12,8 @@ We provide a setup script to get you up and running quickly.
 
 This will install all dependencies for both the backend and frontend.
 
+You will also need to set the GEMINI_API_KEY environment variable.
+
 ## Manual Setup
 
 If you prefer to set up the environment manually, follow these steps:

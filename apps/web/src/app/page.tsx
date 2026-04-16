@@ -6,7 +6,9 @@ import { useState, useEffect } from "react";
 import { WeatherWidget } from "@/components/weather-widget";
 import { WorkoutDetailView } from "@/components/workout-detail-view";
 import { getCachedProgram, setCachedProgram } from "@/lib/program-cache";
+import { WeeklyPlanView } from "@/components/weekly-plan-view";
 import { useScrollSave } from "@/hooks/use-scroll-save";
+import { AdaptChatModal } from "@/components/adapt-chat-modal";
 
 import { API_URL } from "@/config";
 
@@ -14,6 +16,8 @@ export default function Home() {
   const [activeProgram, setActiveProgram] = useState<any>(getCachedProgram());
   const [isLoading, setIsLoading] = useState(!getCachedProgram());
   const scrollRef = useScrollSave("daily-plan-scroll", !isLoading);
+  const [isAdaptModalOpen, setIsAdaptModalOpen] = useState(false);
+  const [showWeeklyPlan, setShowWeeklyPlan] = useState(false);
 
   const fetchProgram = async (force: boolean = false) => {
     try {
@@ -42,6 +46,12 @@ export default function Home() {
   useEffect(() => {
     fetchProgram();
   }, []);
+
+  const handlePlanUpdated = (updatedPlan: any) => {
+    setActiveProgram(updatedPlan);
+    setCachedProgram(updatedPlan);
+    setIsAdaptModalOpen(false);
+  };
 
   // Helper to render workout components
   const renderWorkoutTable = (workout: any) => {
@@ -153,12 +163,21 @@ export default function Home() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 mb-6">
+              <div className="grid grid-cols-3 gap-2 mb-6">
 
-                <button className="flex-1 bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10">
+                <button
+                  onClick={() => setIsAdaptModalOpen(true)}
+                  className="bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10"
+                >
                   Auto-Adapt
                 </button>
-                <button className="flex-1 bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10 leading-tight">
+                <button
+                  onClick={() => setShowWeeklyPlan(true)}
+                  className="bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10 leading-tight"
+                >
+                  View Full Week
+                </button>
+                <button className="bg-[#394d26] hover:bg-[#4b5f36] py-3 rounded-lg font-medium text-sm transition-colors shadow-sm border border-white/10 leading-tight">
                   Send To Squad
                 </button>
               </div>
@@ -184,17 +203,6 @@ export default function Home() {
               {/* Weather Widget */}
               <WeatherWidget />
 
-              {/* Equipment Alert */}
-              <div className="flex border border-white/10 rounded-lg overflow-hidden bg-[#2a3026]">
-                <div className="w-[140px] bg-[#363d31] p-3 flex flex-col items-center justify-center text-center border-r border-white/10">
-                  <span className="font-bold text-sm leading-tight">Equipment Unavailable</span>
-                  <span className="text-xs text-red-400 mt-1">1 weight missing</span>
-                </div>
-                <div className="flex-1 p-3 flex items-center justify-center text-center text-xs text-gray-300">
-                  Auto-Adapt to redistribute tools
-                </div>
-              </div>
-
               {/* Soldier Conditions */}
               <div className="flex border border-white/10 rounded-lg overflow-hidden bg-[#2a3026]">
                 <div className="w-[140px] bg-[#363d31] p-3 flex flex-col items-center justify-center text-center border-r border-white/10">
@@ -211,9 +219,9 @@ export default function Home() {
 
           {/* Squad Readiness */}
           <section>
-            <h3 className="text-xl font-semibold mb-3">Squad Readiness</h3>
+            <h3 className="text-xl font-semibold mb-3">Squad Preparedness</h3>
             <div className="bg-[#363d31] h-4 rounded-full overflow-hidden">
-              <div className="bg-[#4b5f36] w-[75%] h-full rounded-full" />
+              <div className="bg-[#4b5f36] w-[5%] h-full rounded-full" />
             </div>
           </section>
 
@@ -226,10 +234,7 @@ export default function Home() {
           style={{ WebkitTouchCallout: 'none' } as any}
         >
           <Link href="/" className="flex-1 py-4 flex flex-col items-center justify-center gap-1 bg-[#2a3026]">
-            <span className="text-xs font-bold text-white leading-tight text-center">Daily<br />Plan</span>
-          </Link>
-          <Link href="/weekly-plan" className="flex-1 py-4 flex flex-col items-center justify-center gap-1 hover:bg-[#2a3026] transition-colors">
-            <span className="text-xs font-medium text-gray-400 leading-tight text-center">Weekly<br />Plan</span>
+            <span className="text-xs font-bold text-white leading-tight text-center">Current<br />Plan</span>
           </Link>
           <Link href="/build-plan" className="flex-1 py-4 flex flex-col items-center justify-center gap-1 hover:bg-[#2a3026] transition-colors">
             <span className="text-xs font-medium text-gray-400 leading-tight text-center">Build<br />New Plan</span>
@@ -248,6 +253,23 @@ export default function Home() {
           />
         )}
 
+        {/* Adapt Plan Chat Modal */}
+        {isAdaptModalOpen && activeProgram && (
+          <AdaptChatModal
+            program={activeProgram}
+            onClose={() => setIsAdaptModalOpen(false)}
+            onPlanUpdated={handlePlanUpdated}
+          />
+        )}
+
+        {/* Weekly Plan Overlay */}
+        {showWeeklyPlan && activeProgram && (
+          <WeeklyPlanView
+            program={activeProgram}
+            onClose={() => setShowWeeklyPlan(false)}
+            onRefresh={() => fetchProgram(true)}
+          />
+        )}
       </div>
     </div>
   );
