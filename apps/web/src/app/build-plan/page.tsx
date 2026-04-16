@@ -9,7 +9,7 @@ import { setCachedProgram } from "@/lib/program-cache";
 import { useScrollSave } from "@/hooks/use-scroll-save";
 
 import { useRouter } from "next/navigation";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // In-memory store for chat state (persists across navigation, resets on refresh)
 let chatStore: {
@@ -31,6 +31,9 @@ export default function BuildPlan() {
   const [input, setInput] = useState("");
   const [backendState, setBackendState] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
 
@@ -173,6 +176,77 @@ export default function BuildPlan() {
     initChat();
   }, []);
 
+  const startCountdown = (seconds: number) => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setCountdown(seconds);
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const parseAndShowStatus = (statusMsg: string) => {
+    setLoadingStatus(statusMsg);
+    // Extract seconds from messages like "waiting 45s" or "retrying in 60s"
+    const match = statusMsg.match(/(\d+)s/);
+    if (match) {
+      startCountdown(parseInt(match[1]));
+    }
+  };
+
+  const handleSSEChat = async (msg: string, currentState: any) => {
+    const res = await fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg, state: currentState }),
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+
+    // Non-SSE response (initial greeting)
+    if (contentType.includes('application/json')) {
+      return await res.json();
+    }
+
+    // SSE response
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result: any = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      let currentEvent = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7);
+        } else if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+          if (currentEvent === 'status') {
+            parseAndShowStatus(data.status);
+          } else if (currentEvent === 'done') {
+            result = data;
+          } else if (currentEvent === 'error') {
+            throw new Error(data.detail);
+          }
+        }
+      }
+    }
+
+    return result;
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -181,14 +255,12 @@ export default function BuildPlan() {
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setShouldAutoScroll(true);
     setIsLoading(true);
+    setLoadingStatus(null);
+    setCountdown(null);
 
     try {
-      const res = await fetch(`${API_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg, state: backendState }),
-      });
-      const data = await res.json();
+      const data = await handleSSEChat(userMsg, backendState);
+      if (!data) throw new Error("No response from server");
 
       setMessages(prev => [...prev, { role: 'ai', text: data.message }]);
       setShouldAutoScroll(true);
@@ -203,6 +275,9 @@ export default function BuildPlan() {
       console.error("Error sending message", error);
     } finally {
       setIsLoading(false);
+      setLoadingStatus(null);
+      setCountdown(null);
+      if (countdownRef.current) clearInterval(countdownRef.current);
     }
   };
 
@@ -254,7 +329,14 @@ export default function BuildPlan() {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-[#363d31] rounded-2xl rounded-tl-sm p-4 border border-white/5">
-                    <p className="text-gray-400 text-sm animate-pulse">Thinking...</p>
+                    {countdown !== null ? (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-gray-400 text-sm">{loadingStatus?.replace(/\d+s/, '') || 'Please wait...'}</p>
+                        <p className="text-[#fbbf24] text-lg font-mono font-bold">{countdown}s</p>
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 text-sm animate-pulse">{loadingStatus || 'Thinking...'}</p>
+                    )}
                   </div>
                 </div>
               )}
