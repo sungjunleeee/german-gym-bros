@@ -9,7 +9,7 @@ export function getModel(): GenerativeModel {
       throw new Error('GEMINI_API_KEY environment variable not set');
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    _model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview' });
+    _model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite' });
   }
   return _model;
 }

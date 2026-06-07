@@ -2,6 +2,8 @@
 
 A fitness application for generating and managing workout plans for squads.
 
+**Live Demo**: [https://german-gym-bros-web.vercel.app/](https://german-gym-bros-web.vercel.app/)
+
 ## Quick Start
 
 We provide a setup script to get you up and running quickly.

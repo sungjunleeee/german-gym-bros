@@ -19,7 +19,7 @@ api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY environment variable not set")
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-3.1-flash-lite')
 
 app = FastAPI()
 
